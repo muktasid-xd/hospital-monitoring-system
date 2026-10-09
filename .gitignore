@@ -1,0 +1,15 @@
+# Exclude heavy dependencies (Users will generate this via 'npm install')
+node_modules/
+
+# Exclude local workspace runtime configs
+.config.node*
+.config.runti*
+.config.user*
+
+# Exclude local hidden backups
+.flows.json*
+package-lock.json
+
+# Exclude OS noise
+.DS_Store
+Thumbs.db

@@ -1,0 +1,335 @@
+[
+    {
+        "id": "37391354002eb261",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "f_tab",
+        "type": "tab",
+        "label": "Hospital Monitor"
+    },
+    {
+        "id": "ca206a81c9235a82",
+        "type": "serial-port",
+        "name": "",
+        "serialport": "COM9",
+        "serialbaud": "9600",
+        "databits": 8,
+        "parity": "none",
+        "stopbits": 1,
+        "waitfor": "",
+        "dtr": "none",
+        "rts": "none",
+        "cts": "none",
+        "dsr": "none",
+        "newline": "\\n",
+        "bin": "false",
+        "out": "char",
+        "addchar": "",
+        "responsetimeout": 10000
+    },
+    {
+        "id": "4aba90d7d133e7a9",
+        "type": "websocket-listener",
+        "path": "/ws/sensors",
+        "wholemsg": "false"
+    },
+    {
+        "id": "sp1",
+        "type": "serial-port",
+        "serialport": "COM3",
+        "serialbaud": "9600",
+        "databits": "8",
+        "parity": "none",
+        "stopbits": "1",
+        "waitfor": "",
+        "dtr": "none",
+        "rts": "none",
+        "cts": "none",
+        "dsr": "none",
+        "newline": "\\n",
+        "bin": "false",
+        "out": "char",
+        "addchar": "",
+        "responsetimeout": "10000"
+    },
+    {
+        "id": "1ae9de1af0a0eb41",
+        "type": "websocket out",
+        "z": "37391354002eb261",
+        "name": "",
+        "server": "4aba90d7d133e7a9",
+        "client": "",
+        "x": 840,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "f43ec7162c8dec29",
+        "type": "function",
+        "z": "37391354002eb261",
+        "name": "readValues",
+        "func": "var values = String(msg.payload).split(\",\");\nvar ldrReadings = parseFloat(values[0]);\nvar dhtReadings = parseFloat(values[1]);\nvar irReadings = parseInt(values[2]);\n\nif(!irReadings) {\n    irReadings = \"Object nearby!\";\n}\nelse {\n    irReadings = \"No object nearby..\";\n}\n\nmsg.payload = {\n    ldr: ldrReadings,\n    dht: dhtReadings,\n    ir: irReadings\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 590,
+        "y": 160,
+        "wires": [
+            [
+                "1ae9de1af0a0eb41"
+            ]
+        ]
+    },
+    {
+        "id": "ac3b1ebb93384207",
+        "type": "serial in",
+        "z": "37391354002eb261",
+        "name": "",
+        "serial": "ca206a81c9235a82",
+        "x": 350,
+        "y": 180,
+        "wires": [
+            [
+                "f43ec7162c8dec29"
+            ]
+        ]
+    },
+    {
+        "id": "27f235973f8231f8",
+        "type": "serial in",
+        "z": "37391354002eb261",
+        "name": "",
+        "serial": "ca206a81c9235a82",
+        "x": 430,
+        "y": 380,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "sin",
+        "type": "serial in",
+        "z": "f_tab",
+        "name": "Arduino",
+        "serial": "ca206a81c9235a82",
+        "x": 110,
+        "y": 60,
+        "wires": [
+            [
+                "js"
+            ]
+        ]
+    },
+    {
+        "id": "js",
+        "type": "json",
+        "z": "f_tab",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 270,
+        "y": 60,
+        "wires": [
+            [
+                "store"
+            ]
+        ]
+    },
+    {
+        "id": "store",
+        "type": "function",
+        "z": "f_tab",
+        "name": "Build rooms + alerts",
+        "func": "const d=msg.payload;if(!d||!d.ward||!d.ot||!d.store)return null;const now=new Date().toISOString();const rooms=[{id:'ward',name:'Ward',sensors:['temperature','humidity','sound'],temperature:d.ward.t,humidity:d.ward.h,sound:d.ward.s},{id:'ot',name:'Operation Theatre',sensors:['temperature','humidity'],temperature:d.ot.t,humidity:d.ot.h,lightSet:d.ot.l},{id:'store',name:'Medicine Storage',sensors:['temperature','humidity','light'],temperature:d.store.t,humidity:d.store.h,light:d.store.l}].map(r=>Object.assign(r,{timestamp:now}));flow.set('rooms',rooms);const OK={temperature:[18,26],humidity:[30,60],sound:[0,50],light:[0,600]};const WORDS={temperature:'Temperature out of range',humidity:'Humidity out of range',sound:'Loud noise',light:'Light too bright'};let alerts=flow.get('alerts')||[];let seq=flow.get('alertSeq')||1;rooms.forEach(r=>r.sensors.forEach(s=>{const bad=r[s]<OK[s][0]||r[s]>OK[s][1];const open=alerts.find(a=>a.roomId===r.id&&a.type===s&&a.active);if(bad&&!open){alerts.unshift({id:'a'+seq++,roomId:r.id,roomName:r.name,type:s,message:WORDS[s]+' in '+r.name,time:now,active:true,acknowledged:false});}else if(!bad&&open){open.active=false;}}));flow.set('alertSeq',seq);flow.set('alerts',alerts.slice(0,50));return null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 60,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "h1",
+        "type": "http in",
+        "z": "f_tab",
+        "name": "",
+        "url": "/api/auth/login",
+        "method": "post",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 120,
+        "y": 140,
+        "wires": [
+            [
+                "router"
+            ]
+        ]
+    },
+    {
+        "id": "h2",
+        "type": "http in",
+        "z": "f_tab",
+        "name": "",
+        "url": "/api/auth/logout",
+        "method": "post",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 120,
+        "y": 180,
+        "wires": [
+            [
+                "router"
+            ]
+        ]
+    },
+    {
+        "id": "h3",
+        "type": "http in",
+        "z": "f_tab",
+        "name": "",
+        "url": "/api/rooms",
+        "method": "get",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 110,
+        "y": 220,
+        "wires": [
+            [
+                "router"
+            ]
+        ]
+    },
+    {
+        "id": "h4",
+        "type": "http in",
+        "z": "f_tab",
+        "name": "",
+        "url": "/api/alerts",
+        "method": "get",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 110,
+        "y": 260,
+        "wires": [
+            [
+                "router"
+            ]
+        ]
+    },
+    {
+        "id": "h5",
+        "type": "http in",
+        "z": "f_tab",
+        "name": "",
+        "url": "/api/alerts/:id/ack",
+        "method": "post",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 130,
+        "y": 300,
+        "wires": [
+            [
+                "router"
+            ]
+        ]
+    },
+    {
+        "id": "h6",
+        "type": "http in",
+        "z": "f_tab",
+        "name": "",
+        "url": "/api/audit-logs",
+        "method": "get",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 120,
+        "y": 340,
+        "wires": [
+            [
+                "router"
+            ]
+        ]
+    },
+    {
+        "id": "h7",
+        "type": "http in",
+        "z": "f_tab",
+        "name": "",
+        "url": "/api/ot/light",
+        "method": "post",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 120,
+        "y": 380,
+        "wires": [
+            [
+                "router"
+            ]
+        ]
+    },
+    {
+        "id": "router",
+        "type": "function",
+        "z": "f_tab",
+        "name": "API router (auth + roles)",
+        "func": "const USERS={admin:{p:'admin123',role:'admin'},medical:{p:'medical123',role:'medical'},lab:{p:'lab123',role:'lab'},ot:{p:'ot123',role:'ot'}};const ROOMS={admin:['ward','ot','store'],medical:['ward'],lab:['store'],ot:['ot']};const CAN={alerts:['admin','medical','ot'],logs:['admin'],light:['admin','ot']};const path=msg.req.path;const m=msg.req.method;const out=(c,b)=>{msg.statusCode=c;msg.payload=b;return [msg,null];};const sess=flow.get('sessions')||{};const logs=flow.get('logs')||[];const log=(u,r,e)=>{logs.unshift({id:Date.now()+Math.random(),user:u,role:r,event:e,time:new Date().toISOString()});flow.set('logs',logs.slice(0,100));};if(path==='/api/auth/login'){const b=msg.payload||{};const name=String(b.username||'').toLowerCase();const u=USERS[name];if(!u||u.p!==b.password)return out(401,{error:'Wrong username or password'});const token=Math.random().toString(36).slice(2)+Date.now().toString(36);sess[token]={name:name,role:u.role};flow.set('sessions',sess);log(name,u.role,'login');return out(200,{token:token,user:{name:name,role:u.role}});}const tok=(msg.req.headers.authorization||'').replace('Bearer ','');const s=sess[tok];if(!s)return out(401,{error:'Session expired'});const mine=ROOMS[s.role];const allow=k=>CAN[k].includes(s.role);if(path==='/api/auth/logout'){log(s.name,s.role,'logout');delete sess[tok];flow.set('sessions',sess);return out(204,'');}if(path==='/api/rooms'&&m==='GET'){const r=(flow.get('rooms')||[]).filter(x=>mine.includes(x.id));if(!r.length||Date.now()-new Date(r[0].timestamp)>10000)return out(503,{error:'No sensor data'});return out(200,r);}if(path==='/api/alerts'&&m==='GET'){if(!allow('alerts'))return out(403,{error:'Forbidden'});return out(200,(flow.get('alerts')||[]).filter(a=>mine.includes(a.roomId)));}if(path.startsWith('/api/alerts/')&&m==='POST'){if(!allow('alerts'))return out(403,{error:'Forbidden'});const id=decodeURIComponent(path.split('/')[3]);const al=flow.get('alerts')||[];const a=al.find(x=>x.id===id&&mine.includes(x.roomId));if(a)a.acknowledged=true;flow.set('alerts',al);return out(204,'');}if(path==='/api/audit-logs'&&m==='GET'){if(!allow('logs'))return out(403,{error:'Forbidden'});return out(200,logs);}if(path==='/api/ot/light'&&m==='POST'){if(!allow('light'))return out(403,{error:'Forbidden'});const v=Math.round(Number((msg.payload||{}).value));if(!(v>=0&&v<=100))return out(400,{error:'Value must be 0-100'});log(s.name,s.role,'OT light set to '+v+'%');msg.statusCode=200;msg.payload={value:v};return [msg,{payload:'L:'+v+String.fromCharCode(10)}];}return out(404,{error:'Not found'});",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 9,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 260,
+        "wires": [
+            [
+                "res"
+            ],
+            [
+                "sout"
+            ]
+        ]
+    },
+    {
+        "id": "res",
+        "type": "http response",
+        "z": "f_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 660,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "sout",
+        "type": "serial out",
+        "z": "f_tab",
+        "name": "Arduino",
+        "serial": "ca206a81c9235a82",
+        "x": 650,
+        "y": 300,
+        "wires": []
+    }
+]

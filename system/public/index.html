@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Hospital Monitor</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section id="login">
+  <form id="login-form" autocomplete="off">
+    <h1>Smart Hospital Monitor</h1>
+    <p class="muted">Sign in with your staff account.</p>
+    <label for="user">Username</label>
+    <input id="user" required>
+    <label for="pass">Password</label>
+    <input id="pass" type="password" required>
+    <p id="login-error" role="alert"></p>
+    <button class="btn" type="submit">Sign in</button>
+    <div id="demo-hint" class="muted hidden"></div>
+  </form>
+</section>
+
+<div id="app" class="hidden">
+  <header>
+    <h1>Smart Hospital Monitor</h1>
+    <div class="bar-right">
+      <span id="bell" class="hidden" title="Unacknowledged alerts">Alerts <span class="badge" id="bell-count">0</span></span>
+      <button class="btn ghost small hidden" id="enable-notify">Enable desktop alerts</button>
+      <span class="muted" id="who"></span>
+      <span class="role" id="role-badge"></span>
+      <button class="btn ghost" id="logout">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="conn" class="hidden" role="status">Cannot reach the server. Showing no live data until the connection returns.</div>
+
+    <section id="sec-picker" class="hidden">
+      <label for="room-select">Room</label>
+      <select id="room-select" class="picker"></select>
+    </section>
+
+    <section data-perm="alerts">
+      <h2>Alerts</h2>
+      <ul class="list" id="alerts-list"></ul>
+    </section>
+
+    <section data-perm="sound">
+      <h2>Sound level</h2>
+      <div class="grid" id="sound-cards"></div>
+    </section>
+
+    <section data-perm="env">
+      <h2>Light, temperature and humidity</h2>
+      <div class="grid" id="env-cards"></div>
+    </section>
+
+    <section data-perm="ot">
+      <h2>Operation theatre light</h2>
+      <div class="card ot-card">
+        <label for="ot-slider">Brightness: <b id="ot-value">--</b> %</label>
+        <input id="ot-slider" type="range" min="0" max="100" step="5" value="50">
+        <p class="muted" id="ot-msg" role="status"></p>
+      </div>
+    </section>
+
+    
+    <section data-perm="overview">
+      <h2>All rooms</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Room</th><th>Temp</th><th>Humidity</th><th>Light</th><th>Sound</th><th>Status</th></tr></thead>
+          <tbody id="overview-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section data-perm="logs">
+      <h2>User login and logout activity</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Time</th><th>User</th><th>Role</th><th>Event</th></tr></thead>
+          <tbody id="logs-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toasts" aria-live="assertive"></div>
+
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
